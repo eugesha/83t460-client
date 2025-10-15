@@ -34,7 +34,7 @@ IF "%CURRENTLEVEL%"=="секретно" (
 ) ELSE (
 IF "%CURRENTLEVEL%"=="несекретно" (
     set lev=0
-) ELSE echo "ошибка"
+) ELSE echo ошибка определения уровня секретности
 ))
 chcp 866 >nul 2>&1
 
@@ -52,10 +52,11 @@ chcp 866 >nul 2>&1
 
 :: Определяем наличие необхоимых файлов и переменных
 if not CONF == "" if exist %DATADIR%\%CONF% set CONF=%DATADIR%\%CONF%
-if exist %CONF% for /f "eol=# tokens=1,2 delims==" %%x in ('type "%CONF%"') do set %%x=%%y
-if not MAC == "" set WEBPort=%MAC%
-if %SERVER% == "" set PORT=""
-if %PORT% == "" set WEBPort=""
+rem if exist %CONF% for /f "tokens=1,2 delims=: " %%x in ('powershell -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Web.Extensions'); $json=Get-Content C:\Users\zotov_qc\source\repos\NewRepo\config.json; $ser = New-Object System.Web.Script.Serialization.JavaScriptSerializer; $ser.DeserializeObject($json)"') do echo %%x=%%y
+if exist %CONF% for /f "tokens=1,2 delims=: " %%x in ('type "%CONF%"') do set %%~x=%%~y
+if not %server_addr:~,-2% == "" set SERVER=%server_addr:~,-2%
+if not %server_port% == "" set PORT=%server_port%
+if not %mac:~,-2% == ""  set WEBPort=%mac:~,-2%
 if %LOG% == "" set LOG=%DATADIR%\83tclient.%lev%.log
 if not %LOG% == "" for /f %%l in ("%LOG%") do if %%~dpl == "." set LOG=%DATADIR%\%LOG%
 

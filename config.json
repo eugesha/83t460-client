@@ -1,0 +1,8 @@
+{
+    "host_mni": "001-001",
+    "keep_period_days": 5,
+    "mac": "secr",
+    "ndr": "no",
+    "server_addr": "127.0.0.1",
+    "server_port": 2750
+}
