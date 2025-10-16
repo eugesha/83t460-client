@@ -51,29 +51,36 @@ chcp 866 >nul 2>&1
     shift
     if not "%1" == "" goto getopts
 
-:: Определяем наличие необхоимых файлов и переменных
+:: Определяем наличие необходимых файлов и переменных
 if not CONF == "" if exist %DATADIR%\%CONF% set CONF=%DATADIR%\%CONF%
+::if exist %CONF% for /f "tokens=1,2 delims=:, " %%x in ('type "%CONF%"') do (
+::    set %%~x=%%~y
+::    if "%%~x" == "server_addr" set SERVER=%%~y
+::    if "%%~x" == "server_port" set PORT=%%~y
+::    if "%%~x" == "mac" set MAC=%%~y
+::    if "%%~x" == "log" set LOG=%%~y
+::)
 set n=0
 if exist %CONF% for /f "tokens=1,2 delims=:- " %%x in ('2^>nul powershell -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Web.Extensions'); $json=Get-Content %CONF%; $ser = New-Object System.Web.Script.Serialization.JavaScriptSerializer; $ser.DeserializeObject($json)"') do (
     set %%x[!n!]=%%~y
     if "%%x" == "Value" set /a n=n+1
 )
-if exist %CONF% for /f "tokens=1,2 delims=:, " %%x in ('type "%CONF%"') do set %%~x=%%~y
-if not %server_addr% == "" set SERVER=%server_addr%
-if not %server_port% == "" set PORT=%server_port%
-if not %mac% == ""  set WEBPort=%mac%
 FOR /L %%H IN (1,1,%n%) DO ( 
-    if "!Key[%%H]!" == "server_addr" if not "!Value[%%H]!" == "" set SERVER=!Value[%%H]!
-    if "!Key[%%H]!" == "server_port" if not "!Value[%%H]!" == "" set PORT=!Value[%%H]!
-    if "!Key[%%H]!" == "mac" if not "!Value[%%H]!" == "" set WEBPort=!Value[%%H]!
+    if "!Key[%%H]!" == "server_addr" set SERVER=!Value[%%H]!
+    if "!Key[%%H]!" == "server_port" set PORT=!Value[%%H]!
+    if "!Key[%%H]!" == "mac" set MAC=!Value[%%H]!
+    if "!Key[%%H]!" == "log" set LOG=!Value[%%H]!
 )
+if not %MAC% == "" set WEBPort=%MAC%
+if %SERVER% == "" set PORT=""
+if %PORT% == "" set WEBPort=""
 if %LOG% == "" set LOG=%DATADIR%\83tclient.%lev%.log
 if not %LOG% == "" for /f %%l in ("%LOG%") do if %%~dpl == "." set LOG=%DATADIR%\%LOG%
 
 pushd %prgdir%
 for %%l in (%LOG%) do set dirlog=%%~dpl
 call :chmac -s 0 %dirlog%
-mkdir %dirlog%
+mkdir %dirlog% >nul 2>&1
 call :chmac -s 0 %dirlog%
 sysapicmd.exe -s 0 %LOG% >nul 2>&1
 call :chmac -s 0 %DATADIR%
@@ -81,10 +88,8 @@ call :chmac -s 0 %DATADIR%
 :: Проверяем запущенную программу
 for /f "tokens=1,7,2 delims=," %%n IN ('tasklist /nh /v /fo csv /fi "IMAGENAME eq %fname%.exe"') do (
     set puser=%%~p
-    echo %%n , %%o , %%p
-    echo !puser! , %COMPUTERNAME%, %USERNAME% , %fname%.exe
     if "!puser:%COMPUTERNAME%\=!" == "%USERNAME%" if "%fname%.exe" == "%%~n" (
-        echo "%prgname% is running in pid: %%~p";
+        echo "%fname% is running in pid: %%~o"
         exit /b 1
     )
 )
@@ -105,12 +110,15 @@ exit /b ERRORLEVEL
 
 :usage
     echo."Usage: %prgname% [-c conf_file] [-p port] [-s host] [-w web_port] [-l file_log] [-h]" >&2
-    echo."if use conf_file then" >&2
+    echo."if use config.json then" >&2
+    echo."{" >&2
     echo."file conf_file must contain:" >&2
-    echo."    PORT=port" >&2
-    echo."    SERVER=host" >&2
-    echo."    WEBPort=web_port" >&2
-    echo."    LOG=file_log" >&2
+    echo."    ""host_mni"": ""N MHu"" формат(XXX-XXX)," >&2
+    echo."    ""keep_period_days"": day," >&2
+    echo."    ""ndr"": ""yes/no""," >&2
+    echo."    ""server_addr"": ""host""," >&2
+    echo."    ""server_port"": port" >&2
+    echo."}" >&2
     exit /b 1
 
 :chmac
